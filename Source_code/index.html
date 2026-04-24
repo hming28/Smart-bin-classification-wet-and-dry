@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="theme-color" content="#16a34a">
+<title>Smart Bin Dashboard</title>
+<style>
+/* ── Reset & tokens ── */
+:root{
+  --bg:#ffffff;--bg2:#f5f7fa;--bg3:#eef0f4;--border:#d0d5dd;
+  --text:#111827;--muted:#6b7280;
+  --green:#16a34a;--green-d:#dcfce7;
+  --yellow:#b45309;--yellow-d:#fef3c7;
+  --red:#dc2626;--red-d:#fee2e2;
+  --blue:#2563eb;--blue-d:#dbeafe;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:14px}
+
+/* ── Outer shell — mobile-first single column ── */
+.dash{
+  width:100%;max-width:1400px;margin:0 auto;
+  padding:8px;display:grid;grid-template-columns:1fr;gap:8px;
+}
+
+/* ── Cards ── */
+.card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:10px;padding:14px;min-width:0;overflow:hidden;
+}
+.card-label{
+  font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--muted);margin-bottom:12px;font-family:monospace;
+}
+.span2,.span3,.hdr{grid-column:span 1}
+.rowspan2{grid-row:span 1}
+
+/* ── Header ── */
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:10px;flex-wrap:wrap;gap:8px;
+}
+.hdr-left{display:flex;align-items:center;gap:10px}
+.hdr-icon{
+  width:28px;height:28px;background:var(--green);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;
+}
+.hdr-title{font-size:14px;font-weight:600}
+.hdr-sub{font-size:10px;color:var(--muted);font-family:monospace}
+.live-pill{
+  display:flex;align-items:center;gap:5px;background:var(--green-d);
+  border:1px solid var(--green);border-radius:20px;padding:3px 10px;
+  font-size:11px;color:var(--green);font-family:monospace;
+}
+.ldot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:ld 1.4s ease-in-out infinite}
+@keyframes ld{0%,100%{opacity:1}50%{opacity:.3}}
+#clock{font-family:monospace;font-size:12px;color:var(--muted)}
+
+/* ── Connection status pill ── */
+#conn-pill{
+  display:flex;align-items:center;gap:5px;border-radius:20px;padding:3px 10px;
+  font-size:11px;font-family:monospace;border:1px solid var(--border);
+  transition:all .3s;
+}
+#conn-dot{width:6px;height:6px;border-radius:50%;background:var(--muted)}
+
+/* ── Classification counter ── */
+.big-num{font-family:monospace;font-size:44px;font-weight:700;line-height:1}
+.count-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.count-row:last-of-type{border:none}
+.count-type{display:flex;align-items:center;gap:8px}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot-w{background:var(--blue)}.dot-d{background:var(--yellow)}
+.count-val{font-family:monospace;font-size:20px;font-weight:700}
+.cv-wet{color:var(--blue)}.cv-dry{color:var(--yellow)}
+.ratio-wrap{margin-top:14px}
+.ratio-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:5px}
+.ratio-bar{height:7px;border-radius:4px;background:var(--bg3);overflow:hidden;display:flex}
+.rb-wet{background:var(--blue);height:100%;transition:width .6s ease}
+.rb-dry{background:var(--yellow);height:100%;transition:width .6s ease}
+
+/* ── Status orb ── */
+.orb-row{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.orb{width:44px;height:44px;border-radius:50%;flex-shrink:0;transition:background .4s,box-shadow .4s}
+.orb-g{background:var(--green);box-shadow:0 0 18px var(--green)}
+.orb-y{background:var(--yellow);box-shadow:0 0 18px var(--yellow)}
+.orb-r{background:var(--red);box-shadow:0 0 18px var(--red);animation:orba .5s ease-in-out infinite}
+@keyframes orba{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.s-state{font-size:16px;font-weight:600;margin-bottom:2px}
+.s-msg{font-size:12px;color:var(--muted)}
+.led-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.led-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
+.led{width:11px;height:11px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);transition:all .3s}
+.led-on-g{background:var(--green);box-shadow:0 0 8px var(--green)}
+.led-on-y{background:var(--yellow);box-shadow:0 0 8px var(--yellow)}
+.led-on-r{background:var(--red);box-shadow:0 0 8px var(--red)}
+
+/* ── Bin tanks ── */
+.bins-flex{display:flex;gap:14px}
+.bin-col{flex:1;min-width:0}
+.bin-col-lbl{font-size:10px;color:var(--muted);font-family:monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.tank-wrap{position:relative;height:110px;margin-bottom:8px}
+.tank-body{
+  position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:48px;height:100px;
+  border:2px solid var(--border);border-radius:4px 4px 6px 6px;
+  background:var(--bg3);overflow:hidden;
+}
+.tank-fill{position:absolute;bottom:0;left:0;right:0;transition:height .8s cubic-bezier(.4,0,.2,1),background .5s;border-radius:0 0 4px 4px}
+.tank-pct{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-family:monospace;font-size:9px;font-weight:700;
+  color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);z-index:2;white-space:nowrap;
+}
+.bin-stat{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);font-size:11px}
+.bin-stat:last-child{border:none}
+.bin-stat-val{font-family:monospace;font-weight:500}
+.pill{margin-top:7px;padding:4px 8px;border-radius:20px;font-size:10px;font-weight:600;text-align:center;font-family:monospace;transition:all .4s}
+.pill-ok{background:var(--green-d);color:var(--green);border:1px solid var(--green)}
+.pill-warn{background:var(--yellow-d);color:var(--yellow);border:1px solid var(--yellow)}
+.pill-full{background:var(--red-d);color:var(--red);border:1px solid var(--red)}
+
+/* ── Environment ── */
+.env-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.env-box{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;transition:all .3s}
+.env-alert{border-color:var(--red)!important;background:var(--red-d)!important}
+.env-warn{border-color:var(--yellow)!important;background:var(--yellow-d)!important}
+.env-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:5px;font-family:monospace}
+.env-val{font-family:monospace;font-size:22px;font-weight:700;line-height:1;margin-bottom:4px}
+.env-unit{font-size:11px;font-weight:400;color:var(--muted)}
+.badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;font-family:monospace;margin-top:4px}
+.b-low{background:var(--green-d);color:var(--green);border:1px solid var(--green)}
+.b-med{background:var(--yellow-d);color:var(--yellow);border:1px solid var(--yellow)}
+.b-hi{background:var(--red-d);color:var(--red);border:1px solid var(--red)}
+
+/* ── Activity log ── */
+.log-scroll{max-height:200px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.log-entry{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;align-items:flex-start;animation:li .25s ease}
+@keyframes li{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.log-entry:last-child{border:none}
+.log-time{font-family:monospace;color:var(--muted);white-space:nowrap;font-size:11px;padding-top:1px}
+.log-dot{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.li .log-dot{background:var(--green)}
+.lw .log-dot{background:var(--yellow)}.lw .log-msg{color:var(--yellow)}
+.la .log-dot{background:var(--red)}.la .log-msg{color:var(--red)}
+
+/* ── Servo segment ── */
+.seg-section{margin-bottom:14px}
+.seg-lbl{font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:6px;font-weight:600}
+.seg-group{display:flex;gap:6px}
+.seg-btn{
+  flex:1;padding:12px 4px;
+  border:1.5px solid var(--border);border-radius:8px;
+  background:var(--bg3);font-family:monospace;font-size:13px;font-weight:700;
+  cursor:pointer;transition:all .18s;text-align:center;color:var(--text);outline:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.seg-btn:active{opacity:.7}
+.seg-active-dry{background:var(--yellow)!important;border-color:var(--yellow)!important;color:#fff!important;box-shadow:0 0 0 3px var(--yellow-d)}
+.seg-active-wet{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important;box-shadow:0 0 0 3px var(--blue-d)}
+.seg-divider{border:none;border-top:1px solid var(--border);margin:14px 0}
+.seg-cur{font-size:11px;font-family:monospace;color:var(--muted);text-align:center;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;margin-top:10px}
+.seg-apply{
+  width:100%;margin-top:10px;padding:14px;
+  border-radius:8px;border:none;background:var(--green);
+  color:#fff;font-size:14px;font-weight:700;font-family:monospace;
+  cursor:pointer;transition:opacity .2s,background .2s;letter-spacing:.04em;
+  -webkit-tap-highlight-color:transparent;
+}
+.seg-apply:active{opacity:.7}
+
+/* ── Component toggles ── */
+.comp-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}
+.comp-row:last-of-type{border:none}
+.comp-info{display:flex;align-items:center;gap:10px;min-width:0}
+.comp-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.comp-name{font-size:13px;font-weight:600}
+.comp-desc{font-size:11px;color:var(--muted);margin-top:1px}
+.comp-stat{font-size:10px;font-family:monospace;margin-top:3px}
+.c-on{color:var(--green)}.c-off{color:var(--muted)}
+.tog-wrap{position:relative;width:50px;height:28px;flex-shrink:0;display:inline-block}
+.tog-in{opacity:0;width:0;height:0;position:absolute}
+.tog-track{position:absolute;inset:0;border-radius:14px;background:var(--border);cursor:pointer;transition:background .25s}
+.tog-in:checked + .tog-track{background:var(--green)}
+.tog-thumb{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:transform .25s;pointer-events:none}
+.tog-in:checked ~ .tog-thumb{transform:translateX(22px)}
+
+/* ── History chart ── */
+.chart-wrap{position:relative;width:100%;height:180px;margin-top:4px}
+.chart-empty{display:flex;align-items:center;justify-content:center;height:180px;color:var(--muted);font-size:12px;font-family:monospace}
+canvas#histChart{width:100%!important;height:180px!important}
+.chart-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ── Waste Generation Trend ── */
+.trend-chart-wrap{position:relative;width:100%;height:200px;margin-top:4px}
+.trend-chart-wrap .chart-empty{height:200px}
+canvas#trendChart{width:100%!important;height:200px!important}
+.peak-stat{
+  display:flex;align-items:center;gap:12px;
+  margin-top:14px;padding:12px 14px;
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+}
+.peak-icon{font-size:22px;flex-shrink:0;line-height:1}
+.peak-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-family:monospace;margin-bottom:4px}
+.peak-val{font-size:13px;font-weight:600;color:var(--text);font-family:monospace}
+.trend-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
+.trend-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.trend-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ── 7-day dot selector ── */
+/* padding-bottom gives the glow ring room so overflow-x:auto's implicit     */
+/* overflow-y does NOT clip the active dot's box-shadow.                      */
+.day-tabs-wrap{
+  overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  margin-bottom:14px;
+  padding-bottom:8px;   /* ← space for glow ring below the dot */
+}
+.day-tabs-wrap::-webkit-scrollbar{display:none}
+/* align-items:flex-end keeps every dot at the same baseline */
+.day-tabs{
+  display:flex;align-items:flex-end;
+  width:100%;min-width:max-content;
+  position:relative;
+}
+/* Connecting line — starts / ends exactly at the first / last dot centre */
+.day-tabs::before{
+  content:'';position:absolute;
+  bottom:8px;                   /* dot radius = 16px / 2            */
+  left:calc(100% / 14);         /* half of one tab (7 tabs → 14)    */
+  right:calc(100% / 14);
+  height:2px;background:var(--border);z-index:0;
+}
+.day-tab{
+  flex:1;min-width:48px;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  cursor:pointer;border:none;background:none;outline:none;padding:0;
+  position:relative;z-index:1;-webkit-tap-highlight-color:transparent;
+}
+.day-tab-label{
+  font-size:10px;font-weight:500;color:var(--muted);
+  white-space:nowrap;transition:color .18s;line-height:1.3;
+}
+.day-tab-dot{
+  width:16px;height:16px;border-radius:50%;
+  background:var(--bg3);border:2px solid var(--border);
+  /* box-shadow animates the glow ring; no scale → no clipping */
+  transition:background .18s,border-color .18s,box-shadow .18s;
+  flex-shrink:0;
+}
+.day-tab:hover .day-tab-dot{border-color:var(--green)}
+.day-tab:hover .day-tab-label{color:var(--green)}
+.day-tab-active .day-tab-label{color:var(--green);font-weight:700}
+.day-tab-active .day-tab-dot{
+  background:var(--green);border-color:var(--green);
+  /* glow ring only — same 16px size so dot stays perfectly on the line */
+  box-shadow:0 0 0 4px rgba(39,174,96,.22);
+}
+.c-date-sub{font-size:12px;color:var(--muted);margin-bottom:16px;min-height:18px;transition:color .2s}
+/* ── Mobile: all 7 dots fit in one screen width without scrolling ── */
+@media(max-width:520px){
+  .day-tabs{min-width:unset}          /* let flex fill the card width   */
+  .day-tab{min-width:0}               /* allow tabs to compress         */
+  .day-tab-label{font-size:9px}
+}
+
+/* ════ TABLET ≥ 600px → 2-column ════ */
+@media(min-width:600px){
+  .dash{grid-template-columns:repeat(2,1fr);padding:10px;gap:10px}
+  .hdr,.span2,.span3{grid-column:span 2}
+  .big-num{font-size:48px}
+}
+
+/* ════ DESKTOP ≥ 960px → 3-column ════ */
+@media(min-width:960px){
+  .dash{grid-template-columns:repeat(3,1fr);padding:12px;gap:12px}
+  .hdr,.span3{grid-column:span 3}
+  .span2{grid-column:span 2}
+  .rowspan2{grid-row:span 2}
+  .big-num{font-size:52px}
+  .env-val{font-size:26px}
+  .seg-btn{padding:10px 4px}
+  .seg-apply{padding:11px;font-size:13px}
+}
+
+/* ══════════════════════════════════════════
+   Step 2 - LOGIN OVERLAY (behind the dashbroad)
+   ══════════════════════════════════════════ */
+#login-overlay{
+  position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;
+  padding:16px;
+}
+#login-overlay.hidden{display:none}
+.login-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:14px;padding:32px 28px;width:100%;max-width:360px;
+  box-shadow:0 8px 32px rgba(0,0,0,.18);
+}
+.login-logo{font-size:36px;text-align:center;margin-bottom:6px}
+.login-title{font-size:18px;font-weight:700;text-align:center;margin-bottom:2px}
+.login-sub{font-size:12px;color:var(--muted);text-align:center;margin-bottom:24px}
+/* Auth mode tabs (Sign In / Register) */
+.auth-tabs{display:flex;background:var(--bg3);border-radius:8px;padding:3px;margin-bottom:20px}
+.auth-tab{
+  flex:1;padding:7px;border:none;border-radius:6px;
+  background:transparent;color:var(--muted);
+  font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;
+}
+.auth-tab.auth-tab-active{background:var(--bg2);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+/* Email/password fields */
+.login-field{margin-bottom:14px}
+.login-field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px}
+.login-field input{
+  width:100%;padding:10px 12px;border-radius:8px;
+  border:1.5px solid var(--border);background:var(--bg);
+  font-size:14px;color:var(--text);outline:none;transition:border-color .18s;
+}
+.login-field input:focus{border-color:var(--green)}
+/* Primary action button */
+.login-btn{
+  width:100%;padding:11px;border-radius:8px;border:none;
+  background:var(--green);color:#fff;font-size:14px;font-weight:700;
+  cursor:pointer;transition:opacity .18s;margin-top:4px;
+}
+.login-btn:hover{opacity:.88}
+.login-btn:disabled{opacity:.5;cursor:not-allowed}
+.login-err{
+  font-size:12px;color:var(--red);text-align:center;
+  margin-top:10px;min-height:18px;
+}
+/* Logout button in header */
+.logout-btn{
+  padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);
+  background:transparent;color:var(--muted);font-size:11px;font-weight:600;
+  cursor:pointer;transition:all .18s;white-space:nowrap;
+}
+.logout-btn:hover{border-color:var(--red);color:var(--red)}
+
+/* ══════════════════════════════════════════
+   TOAST NOTIFICATIONS
+   ══════════════════════════════════════════ */
+#toast-container{
+  position:fixed;top:16px;right:16px;z-index:10000;
+  display:flex;flex-direction:column;gap:8px;
+  max-width:320px;width:calc(100% - 32px);
+  pointer-events:none;
+}
+.toast{
+  background:var(--bg2);border:1px solid var(--border);
+  border-left:4px solid var(--red);border-radius:10px;
+  padding:12px 14px;display:flex;gap:10px;align-items:flex-start;
+  box-shadow:0 4px 20px rgba(0,0,0,.15);
+  pointer-events:all;position:relative;overflow:hidden;
+  animation:toastIn .28s ease;
+}
+.toast.warn{border-left-color:var(--yellow)}
+.toast-icon{font-size:20px;flex-shrink:0;line-height:1.3}
+.toast-body{flex:1;min-width:0}
+.toast-title{font-weight:700;font-size:13px;margin-bottom:2px}
+.toast-msg{font-size:12px;color:var(--muted);line-height:1.4}
+.toast-close{
+  flex-shrink:0;background:none;border:none;
+  font-size:15px;color:var(--muted);cursor:pointer;
+  padding:0 2px;line-height:1;transition:color .15s;
+}
+.toast-close:hover{color:var(--text)}
+.toast-progress{
+  position:absolute;bottom:0;left:0;height:3px;
+  background:var(--red);border-radius:0 0 0 6px;
+}
+.toast.warn .toast-progress{background:var(--yellow)}
+@keyframes toastIn{from{opacity:0;transform:translateX(36px)}to{opacity:1;transform:none}}
+@media(max-width:520px){#toast-container{right:8px;top:8px;max-width:calc(100% - 16px)}}
+</style>
+</head>
+<body>
+
+<!-- ══ TOAST NOTIFICATION CONTAINER ══ -->
+<div id="toast-container"></div>
+
+<!-- Step 3 ══ LOGIN OVERLAY (hidden once authenticated) ══ -->
+<div id="login-overlay">
+  <div class="login-card">
+    <div class="login-logo">&#9851;</div>
+    <div class="login-title">Smart Bin Dashboard</div>
+    <div class="login-sub">BMIT2123 IoT &nbsp;&middot;&nbsp; RDS1S3G2</div>
+
+    <!-- Mode toggle tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab auth-tab-active" id="tab-signin"   onclick="switchTab('signin')">Sign In</button>
+      <button class="auth-tab"                 id="tab-register" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <!-- Email -->
+    <div class="login-field">
+      <label for="li-email">Email</label>
+      <input id="li-email" type="email" placeholder="you@example.com" autocomplete="email">
+    </div>
+
+    <!-- Password -->
+    <div class="login-field">
+      <label for="li-pass">Password</label>
+      <input id="li-pass" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="current-password">
+    </div>
+
+    <!-- Confirm password — Register only -->
+    <div class="login-field" id="li-confirm-wrap" style="display:none">
+      <label for="li-confirm">Confirm Password</label>
+      <input id="li-confirm" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password">
+    </div>
+
+    <!-- Primary button -->
+    <button class="login-btn" id="li-btn" onclick="doEmailAuth()">Sign In</button>
+    <div class="login-err" id="li-err"></div>
+
+  </div>
+</div>
+
+<div class="dash" id="dash">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="hdr-icon">&#9851;</div>
+      <div>
+        <div class="hdr-title">Smart Bin Dashboard</div>
+        <div class="hdr-sub">BMIT2123 IoT &nbsp;&middot;&nbsp; RDS1S3G2 &nbsp;&middot;&nbsp; ESP32-S3</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px">
+      <div class="live-pill"><div class="ldot"></div>LIVE</div>
+      <div id="conn-pill"><div id="conn-dot"></div><span id="conn-text">Connecting...</span></div>
+      <div id="clock">--:--:--</div>
+      <button class="logout-btn" id="logout-btn" onclick="doLogout()" style="display:none">&#x2192; Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Classification Counter + History Chart -->
+  <div class="card rowspan2">
+    <div class="card-label">Classification counter</div>
+    <!-- 7-day history tab selector -->
+    <div class="day-tabs-wrap">
+      <div class="day-tabs" id="day-tabs"></div>
+    </div>
+    <div class="big-num" id="c-total">0</div>
+    <div class="c-date-sub" id="c-date-label">items sorted today</div>
+    <div class="count-row">
+      <div class="count-type"><div class="dot dot-w"></div>Wet waste</div>
+      <div class="count-val cv-wet" id="c-wet">0</div>
+    </div>
+    <div class="count-row">
+      <div class="count-type"><div class="dot dot-d"></div>Dry waste</div>
+      <div class="count-val cv-dry" id="c-dry">0</div>
+    </div>
+    <div class="ratio-wrap">
+      <div class="ratio-labels">
+        <span id="rl-wet">Wet 0%</span>
+        <span id="rl-dry">Dry 0%</span>
+      </div>
+      <div class="ratio-bar">
+        <div class="rb-wet" id="rb-wet" style="width:50%"></div>
+        <div class="rb-dry" id="rb-dry" style="width:50%"></div>
+      </div>
+    </div>
+
+    <!-- History chart -->
+    <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
+      <div class="card-label" style="margin-bottom:10px">&#128200; Sensor history</div>
+      <div class="chart-wrap">
+        <div class="chart-empty" id="chart-empty">Waiting for history data...</div>
+        <canvas id="histChart" style="display:none"></canvas>
+      </div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#dc2626"></div>Temperature (&deg;C)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2563eb"></div>Humidity (%)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Status -->
+  <div class="card">
+    <div class="card-label">System status</div>
+    <div class="orb-row">
+      <div class="orb orb-g" id="s-orb"></div>
+      <div>
+        <div class="s-state" id="s-state">Connecting...</div>
+        <div class="s-msg" id="s-msg">Waiting for Firebase data</div>
+      </div>
+    </div>
+    <div class="led-row">
+      <div class="led-item"><div class="led" id="l-green"></div>Ready</div>
+      <div class="led-item"><div class="led" id="l-yellow"></div>Processing</div>
+      <div class="led-item"><div class="led" id="l-red"></div>Alert</div>
+    </div>
+  </div>
+
+  <!-- Bin Capacity -->
+  <div class="card">
+    <div class="card-label">Bin capacity</div>
+    <div class="bins-flex">
+      <div class="bin-col">
+        <div class="bin-col-lbl">Wet bin</div>
+        <div class="tank-wrap">
+          <div class="tank-body">
+            <div class="tank-fill" id="tf-wet" style="height:0%"></div>
+            <div class="tank-pct" id="tp-wet">0.00%</div>
+          </div>
+        </div>
+        <div class="bin-stat"><span style="color:var(--muted)">Fill</span><span class="bin-stat-val" id="bv-wet-pct">0.00%</span></div>
+        <div class="bin-stat"><span style="color:var(--muted)">Distance</span><span class="bin-stat-val" id="bv-wet-dist">-- cm</span></div>
+        <div class="pill pill-ok" id="bp-wet">Waiting...</div>
+      </div>
+      <div class="bin-col">
+        <div class="bin-col-lbl">Dry bin</div>
+        <div class="tank-wrap">
+          <div class="tank-body">
+            <div class="tank-fill" id="tf-dry" style="height:0%"></div>
+            <div class="tank-pct" id="tp-dry">0.00%</div>
+          </div>
+        </div>
+        <div class="bin-stat"><span style="color:var(--muted)">Fill</span><span class="bin-stat-val" id="bv-dry-pct">0.00%</span></div>
+        <div class="bin-stat"><span style="color:var(--muted)">Distance</span><span class="bin-stat-val" id="bv-dry-dist">-- cm</span></div>
+        <div class="pill pill-ok" id="bp-dry">Waiting...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Environment -->
+  <div class="card span2">
+    <div class="card-label">Environment monitoring</div>
+    <div class="env-grid">
+      <div class="env-box" id="eb-temp">
+        <div class="env-lbl">Temperature</div>
+        <div class="env-val"><span id="ev-temp">--</span><span class="env-unit"> &deg;C</span></div>
+        <div class="badge b-low" id="eg-temp">Waiting...</div>
+      </div>
+      <div class="env-box" id="eb-humid">
+        <div class="env-lbl">Humidity</div>
+        <div class="env-val"><span id="ev-humid">--</span><span class="env-unit"> %</span></div>
+        <div class="badge b-low" id="eg-humid">Waiting...</div>
+      </div>
+      <div class="env-box" id="eb-fire">
+        <div class="env-lbl">Fire / heat risk</div>
+        <div class="env-val" id="ev-fire" style="font-size:20px;padding-top:4px">--</div>
+        <div class="badge b-low" id="eg-fire">Waiting...</div>
+      </div>
+      <div class="env-box" id="eb-leak">
+        <div class="env-lbl">Liquid leak (float switch)</div>
+        <div class="env-val" id="ev-leak" style="font-size:20px;padding-top:4px">--</div>
+        <div class="badge b-low" id="eg-leak">Waiting...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lid Servo Angle Control -->
+  <div class="card">
+    <div class="card-label">&#9881; Lid Servo Angle</div>
+
+    <div class="seg-section">
+      <div class="seg-lbl">&#128149; Dry bin lid angle</div>
+      <div class="seg-group" id="sg-dry">
+        <button class="seg-btn seg-active-dry" data-val="30" onclick="selSeg('dry',this)">30&deg;</button>
+        <button class="seg-btn" data-val="35" onclick="selSeg('dry',this)">35&deg;</button>
+        <button class="seg-btn" data-val="40" onclick="selSeg('dry',this)">40&deg;</button>
+      </div>
+    </div>
+
+    <hr class="seg-divider">
+
+    <div class="seg-section">
+      <div class="seg-lbl">&#128167; Wet bin lid angle</div>
+      <div class="seg-group" id="sg-wet">
+        <button class="seg-btn seg-active-wet" data-val="150" onclick="selSeg('wet',this)">150&deg;</button>
+        <button class="seg-btn" data-val="155" onclick="selSeg('wet',this)">155&deg;</button>
+        <button class="seg-btn" data-val="160" onclick="selSeg('wet',this)">160&deg;</button>
+      </div>
+    </div>
+
+    <div class="seg-cur" id="seg-cur">Dry 30&deg; &nbsp;&middot;&nbsp; Wet 150&deg;</div>
+    <button class="seg-apply" id="seg-apply-btn" onclick="applyServo()">&#10003; Apply Servo Settings</button>
+  </div>
+
+  <!-- Component Enable / Disable -->
+  <div class="card span2">
+    <div class="card-label">&#9889; Component Enable / Disable</div>
+
+    <div class="comp-row">
+      <div class="comp-info">
+        <div class="comp-icon" style="background:#fef3c7">&#127777;</div>
+        <div>
+          <div class="comp-name">DHT11 Sensor</div>
+          <div class="comp-desc">Temperature &amp; humidity monitoring</div>
+          <div class="comp-stat c-on" id="st-dht">&#9679; Enabled</div>
+        </div>
+      </div>
+      <label class="tog-wrap">
+        <input type="checkbox" class="tog-in" id="tog-dht" checked onchange="togComp('dht')">
+        <div class="tog-track"></div>
+        <div class="tog-thumb"></div>
+      </label>
+    </div>
+
+    <div class="comp-row">
+      <div class="comp-info">
+        <div class="comp-icon" style="background:#dcfce7">&#128161;</div>
+        <div>
+          <div class="comp-name">LED Indicators</div>
+          <div class="comp-desc">Status LEDs &mdash; Green / Yellow / Red</div>
+          <div class="comp-stat c-on" id="st-led">&#9679; Enabled</div>
+        </div>
+      </div>
+      <label class="tog-wrap">
+        <input type="checkbox" class="tog-in" id="tog-led" checked onchange="togComp('led')">
+        <div class="tog-track"></div>
+        <div class="tog-thumb"></div>
+      </label>
+    </div>
+
+    <div class="comp-row">
+      <div class="comp-info">
+        <div class="comp-icon" style="background:#dbeafe">&#128167;</div>
+        <div>
+          <div class="comp-name">Moisture Sensor</div>
+          <div class="comp-desc">Wet/dry classification &mdash; OFF forces dry bin</div>
+          <div class="comp-stat c-on" id="st-moist">&#9679; Enabled</div>
+        </div>
+      </div>
+      <label class="tog-wrap">
+        <input type="checkbox" class="tog-in" id="tog-moist" checked onchange="togComp('moist')">
+        <div class="tog-track"></div>
+        <div class="tog-thumb"></div>
+      </label>
+    </div>
+  </div>
+
+  <!-- Activity Log -->
+  <div class="card span3">
+    <div class="card-label">Activity log</div>
+    <div class="log-scroll" id="log"></div>
+  </div>
+
+  <!-- Waste Generation Trend -->
+  <div class="card span3">
+    <div class="card-label">&#128202; Waste Generation Trend &nbsp;<span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">— sort events per hour (last 200 records)</span></div>
+
+    <div class="trend-chart-wrap">
+      <div class="chart-empty" id="trend-empty">Waiting for data...</div>
+      <canvas id="trendChart" style="display:none"></canvas>
+    </div>
+
+    <div class="trend-legend">
+      <div class="trend-legend-item"><div class="trend-legend-dot" style="background:#16a34a"></div>Sort events</div>
+      <div class="trend-legend-item"><div class="trend-legend-dot" style="background:#f59e0b"></div>Peak hour</div>
+    </div>
+
+    <!-- Peak Usage stat card -->
+    <div class="peak-stat">
+      <div class="peak-icon">&#9201;</div>
+      <div>
+        <div class="peak-label">Peak Usage</div>
+        <div class="peak-val" id="peak-val">No data yet</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Firebase SDK (compat v10) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<script>
+(function () {
+
+  /* ════════════════════════════════════════════
+     FIREBASE CONFIG
+     Replace the placeholder values with your
+     actual Firebase project credentials from:
+     Firebase Console → Project Settings → General
+     → Your apps → Firebase SDK snippet → Config
+     ════════════════════════════════════════════ */
+  var firebaseConfig = {
+    apiKey:            "AIzaSyDPcIh59TKcnwE2SrsbXhUHfhSbTKfmGOY",
+    authDomain:        "smart-bin-78f35.firebaseapp.com",
+    databaseURL:       "https://smart-bin-78f35-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId:         "smart-bin-78f35",
+    storageBucket:     "smart-bin-78f35.firebasestorage.app",
+    messagingSenderId: "705480487003",
+    appId:             "1:705480487003:web:e039fe4d4983ea0d4f0f7e"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+
+/*Step 4 — Add the auth logic JS (after firebase.initializeApp, before the clock)*/
+  var db   = firebase.database();
+  var auth = firebase.auth();
+
+  /* ══════════════════════════════════════════
+     AUTH — login / logout / state watcher
+     ══════════════════════════════════════════ */
+
+  /* Realtime DB listeners must attach only AFTER login if your rules use auth != null.
+     Attaching before auth causes PERMISSION_DENIED and no data sync. */
+  var _dbListenersAttached = false;
+
+  function fbErr(err) {
+    if (err) console.error('Firebase:', err.code, err.message);
+  }
+
+  /* Watch authentication state */
+  auth.onAuthStateChanged(function (user) {
+    var overlay  = document.getElementById('login-overlay');
+    var logoutBtn = document.getElementById('logout-btn');
+    if (user) {
+      /* Authenticated — hide login, show dashboard + logout button */
+      overlay.classList.add('hidden');
+      var firstName = user.displayName ? user.displayName.split(' ')[0] : (user.email || 'User');
+      logoutBtn.innerHTML =
+        (user.photoURL
+          ? '<img src="' + user.photoURL + '" style="width:16px;height:16px;border-radius:50%;vertical-align:middle;margin-right:5px"> '
+          : '') +
+        firstName + ' &nbsp;&middot;&nbsp; Sign Out';
+      logoutBtn.style.display = '';
+      /* Ask for browser notification permission after login */
+      requestNotifPermission();
+      attachDatabaseListeners();
+    } else {
+      detachDatabaseListeners();
+      /* Not authenticated — show login overlay, hide logout button */
+      overlay.classList.remove('hidden');
+      logoutBtn.style.display = 'none';
+    }
+  });
+
+  /* ── Auth mode: 'signin' or 'register' ── */
+  var _authMode = 'signin';
+
+  /* Switch between Sign In and Register tabs */
+  window.switchTab = function (mode) {
+    _authMode = mode;
+    var isReg = (mode === 'register');
+    document.getElementById('tab-signin').classList.toggle('auth-tab-active', !isReg);
+    document.getElementById('tab-register').classList.toggle('auth-tab-active', isReg);
+    document.getElementById('li-confirm-wrap').style.display = isReg ? '' : 'none';
+    document.getElementById('li-btn').textContent = isReg ? 'Create Account' : 'Sign In';
+    document.getElementById('li-err').textContent = '';
+  };
+
+  /* Email / password — Sign In OR Register depending on active tab */
+  window.doEmailAuth = function () {
+    var email   = document.getElementById('li-email').value.trim();
+    var pass    = document.getElementById('li-pass').value;
+    var btn     = document.getElementById('li-btn');
+    var errEl   = document.getElementById('li-err');
+    errEl.textContent = '';
+
+    if (!email || !pass) { errEl.textContent = 'Please enter email and password.'; return; }
+
+    if (_authMode === 'register') {
+      var confirm = document.getElementById('li-confirm').value;
+      if (pass !== confirm)  { errEl.textContent = 'Passwords do not match.'; return; }
+      if (pass.length < 6)   { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+    }
+
+    btn.disabled    = true;
+    btn.textContent = _authMode === 'register' ? 'Creating account\u2026' : 'Signing in\u2026';
+
+    var promise = _authMode === 'register'
+      ? auth.createUserWithEmailAndPassword(email, pass)
+      : auth.signInWithEmailAndPassword(email, pass);
+
+    promise
+      .catch(function (err) {
+        var msg = err.code === 'auth/email-already-in-use'  ? 'An account with this email already exists.'
+                : err.code === 'auth/invalid-email'         ? 'Invalid email address.'
+                : err.code === 'auth/weak-password'         ? 'Password must be at least 6 characters.'
+                : err.code === 'auth/user-not-found'        ? 'No account found with this email.'
+                : err.code === 'auth/wrong-password'        ? 'Incorrect password.'
+                : err.code === 'auth/invalid-credential'    ? 'Invalid email or password.'
+                : err.code === 'auth/too-many-requests'     ? 'Too many attempts \u2014 try again later.'
+                : 'Error: ' + err.message;
+        errEl.textContent = msg;
+      })
+      .finally(function () {
+        btn.disabled    = false;
+        btn.textContent = _authMode === 'register' ? 'Create Account' : 'Sign In';
+      });
+  };
+
+  /* Enter key shortcuts */
+  document.getElementById('li-email').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') document.getElementById('li-pass').focus();
+  });
+  document.getElementById('li-pass').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      if (_authMode === 'register') document.getElementById('li-confirm').focus();
+      else doEmailAuth();
+    }
+  });
+  document.getElementById('li-confirm').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') doEmailAuth();
+  });
+
+  /* Sign out */
+  window.doLogout = function () {
+    auth.signOut();
+  };
+
+  /* ── Clock ── */
+  function tick() {
+    var el = document.getElementById('clock');
+    if (el) el.textContent = new Date().toLocaleTimeString('en-GB', { hour12: false });
+  }
+  setInterval(tick, 1000); tick();
+
+  /* ── Write control command to Firebase ──
+     /smartbin/control/{key}       → transient command queue
+       Node-RED polls every 2s, picks up, publishes MQTT, then clears it.
+     /smartbin/control_state/{key} → persistent state
+       Stays in Firebase so the dashboard can restore toggle/servo
+       states on every page load or across multiple devices.          */
+  function sendControl(key, body) {
+    db.ref('smartbin/control/' + key).set(body)
+      .catch(function (e) { console.error('Firebase control error:', key, e); });
+    db.ref('smartbin/control_state/' + key).set(body)
+      .catch(function (e) { console.error('Firebase state error:', key, e); });
+  }
+
+  /* ── Servo segment state ── */
+  var _dryDeg = 30, _wetDeg = 150;
+
+  window.selSeg = function (side, btn) {
+    var g = document.getElementById('sg-' + side);
+    g.querySelectorAll('.seg-btn').forEach(function (b) {
+      b.classList.remove('seg-active-dry', 'seg-active-wet');
+    });
+    btn.classList.add('seg-active-' + side);
+    if (side === 'dry') _dryDeg = parseInt(btn.dataset.val);
+    else                _wetDeg = parseInt(btn.dataset.val);
+    document.getElementById('seg-cur').innerHTML =
+      'Dry ' + _dryDeg + '&deg; &nbsp;&middot;&nbsp; Wet ' + _wetDeg + '&deg;';
+  };
+
+  window.applyServo = function () {
+    sendControl('servo', { dry_deg: _dryDeg, wet_deg: _wetDeg });
+    var b = document.getElementById('seg-apply-btn');
+    var orig = b.textContent;
+    b.textContent = '\u2713 Sent!';
+    b.style.background = 'var(--blue)';
+    setTimeout(function () { b.textContent = orig; b.style.background = ''; }, 2000);
+  };
+
+  /* ── Component toggles ── */
+  window.togComp = function (id) {
+    var chk  = document.getElementById('tog-' + id);
+    var on   = chk.checked;
+    var stEl = document.getElementById(id === 'moist' ? 'st-moist' : 'st-' + id);
+    stEl.innerHTML  = on ? '\u25cf Enabled' : '\u25cf Disabled';
+    stEl.className  = 'comp-stat ' + (on ? 'c-on' : 'c-off');
+    var keyMap = { dht: 'dht11', led: 'led', moist: 'moisture' };
+    sendControl(keyMap[id], { enabled: on });
+  };
+
+  /* ══════════════════════════════════════════════════════════════
+     7-DAY HISTORY PANEL — state, helpers, Firebase-backed per-day data
+     ══════════════════════════════════════════════════════════════ */
+  var _selectedDate = null;   // null = Today (live); "YYYY-MM-DD" = historical day
+  var _todayData    = { total: 0, wet: 0, dry: 0 };
+  var _dailyHistory = {};     // { "YYYY-MM-DD": { total, wet, dry } } — from daily_history Firebase node
+
+  function pad2(n) { return n < 10 ? '0' + n : String(n); }
+
+  /* Parse "YYYY-MM-DD HH:MM:SS UTC" safely to a Date in UTC */
+  function parseTimestamp(ts) {
+    if (!ts) return new Date(0);
+    return new Date(ts.replace(' UTC', 'Z').replace(' ', 'T'));
+  }
+
+  /* "YYYY-MM-DD" string in the browser's LOCAL timezone */
+  function localDateStr(d) {
+    var date = d || new Date();
+    return date.getFullYear() + '-' + pad2(date.getMonth() + 1) + '-' + pad2(date.getDate());
+  }
+
+  /* "2026-04-07" → "07 Apr 2026" */
+  function formatDateLabel(dateStr) {
+    return new Date(dateStr + 'T12:00:00')
+      .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  /* Update the classification counter card (live today or historical day) */
+  function updateCounter(total, wet, dry, sublabel) {
+    document.getElementById('c-total').textContent = total;
+    document.getElementById('c-wet').textContent   = wet;
+    document.getElementById('c-dry').textContent   = dry;
+    var lbl = document.getElementById('c-date-label');
+    if (lbl) lbl.textContent = sublabel;
+    var wR = total > 0 ? Math.round(wet / total * 100) : 50;
+    var dR = 100 - wR;
+    document.getElementById('rb-wet').style.width = wR + '%';
+    document.getElementById('rb-dry').style.width = dR + '%';
+    document.getElementById('rl-wet').textContent = 'Wet ' + wR + '%';
+    document.getElementById('rl-dry').textContent = 'Dry ' + dR + '%';
+  }
+
+  /* Build the 7-day tab strip (Today, Yesterday, …, 6 days ago) */
+  function buildDayTabs() {
+    var wrap = document.getElementById('day-tabs');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    var today = new Date();
+    for (var i = 0; i < 7; i++) {
+      var d    = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+      var dStr = localDateStr(d);
+      var lbl  = i === 0 ? 'Today'
+               : i === 1 ? 'Yest.'
+               : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+      var btn = document.createElement('button');
+      btn.className    = 'day-tab' + (i === 0 ? ' day-tab-active' : '');
+      btn.dataset.date = dStr;
+      /* Label above the line, dot sitting on the line */
+      var labelEl = document.createElement('span');
+      labelEl.className   = 'day-tab-label';
+      labelEl.textContent = lbl;
+      var dotEl = document.createElement('span');
+      dotEl.className = 'day-tab-dot';
+      btn.appendChild(labelEl);
+      btn.appendChild(dotEl);
+      btn.addEventListener('click', (function (ds, b) {
+        return function () { selectDay(ds, b); };
+      })(dStr, btn));
+      wrap.appendChild(btn);
+    }
+  }
+
+  /* Switch the counter to show the selected day */
+  function selectDay(dateStr, btn) {
+    document.querySelectorAll('.day-tab').forEach(function (t) {
+      t.classList.remove('day-tab-active');
+    });
+    if (btn) btn.classList.add('day-tab-active');
+    var todayDate = localDateStr();
+    if (dateStr === todayDate) {
+      _selectedDate = null;  // back to live mode
+      updateCounter(_todayData.total, _todayData.wet, _todayData.dry, 'items sorted today');
+    } else {
+      _selectedDate = dateStr;
+      var day = _dailyHistory[dateStr] || { total: 0, wet: 0, dry: 0 };
+      updateCounter(day.total, day.wet, day.dry, 'items sorted on ' + formatDateLabel(dateStr));
+    }
+  }
+
+
+  /* ══════════════════════════════════════════
+     NOTIFICATIONS — browser + in-page toast
+     Fires only when a condition transitions
+     from normal → alert (no repeated spam).
+     ══════════════════════════════════════════ */
+
+  /* Track previous alert states to detect transitions */
+  var _prevAlerts = {
+    binFullWet: false, binFullDry: false,
+    leak: false, fire: false,
+    tempWarn: false, highHumid: false
+  };
+
+  /* Request browser notification permission (called after login) */
+  window.requestNotifPermission = function () {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  };
+
+  /* Show a browser notification + in-page toast */
+  function sendAlert(icon, title, body, level) {
+    /* Browser notification — works even when tab is in background */
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification('Smart Bin — ' + title, {
+          body:  body,
+          icon:  '/favicon.png',
+          tag:   title,         /* prevents duplicate system-level toasts */
+          renotify: false
+        });
+      } catch (e) {}
+    }
+
+    /* In-page toast (always shown) */
+    var container = document.getElementById('toast-container');
+    if (!container) return;
+    var isCritical = (level !== 'warn');
+    var autoMs     = isCritical ? 12000 : 8000;
+
+    var toast = document.createElement('div');
+    toast.className = 'toast' + (level === 'warn' ? ' warn' : '');
+
+    /* Progress bar shrinks from 100% → 0% over autoMs */
+    toast.innerHTML =
+      '<span class="toast-icon">' + icon + '</span>' +
+      '<div class="toast-body">' +
+        '<div class="toast-title">' + title + '</div>' +
+        '<div class="toast-msg">'   + body  + '</div>' +
+      '</div>' +
+      '<button class="toast-close" onclick="this.closest(\'.toast\').remove()">\u2715</button>' +
+      '<div class="toast-progress" id="tp-' + Date.now() + '"></div>';
+
+    container.appendChild(toast);
+
+    /* Animate the progress bar width */
+    var bar = toast.querySelector('.toast-progress');
+    bar.style.width     = '100%';
+    bar.style.transition = 'width ' + (autoMs / 1000) + 's linear';
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { bar.style.width = '0%'; });
+    });
+
+    /* Auto-dismiss */
+    var timer = setTimeout(function () {
+      toast.style.transition = 'opacity .3s';
+      toast.style.opacity    = '0';
+      setTimeout(function () { if (toast.parentNode) toast.remove(); }, 300);
+    }, autoMs);
+
+    /* Clicking close cancels the timer */
+    toast.querySelector('.toast-close').addEventListener('click', function () {
+      clearTimeout(timer);
+    });
+  }
+
+  /* Check all conditions and fire alerts only on false → true transitions */
+  function checkAlerts(s) {
+    var tc  = s.temp_c    || 0;
+    var hc  = s.humid_pct || 0;
+    var wpct = s.wet_pct  || 0;
+    var dpct = s.dry_pct  || 0;
+
+    var cur = {
+      binFullWet: wpct >= 90,
+      binFullDry: dpct >= 90,
+      leak:       !!s.leak,
+      fire:       tc > 50,
+      tempWarn:   tc > 45 && tc <= 50,
+      highHumid:  hc > 80
+    };
+
+    if (cur.binFullWet  && !_prevAlerts.binFullWet)
+      sendAlert('\uD83D\uDDD1', 'Wet Bin Full',
+        'Wet waste bin has reached 90% — please replace immediately.', 'alert');
+
+    if (cur.binFullDry  && !_prevAlerts.binFullDry)
+      sendAlert('\uD83D\uDDD1', 'Dry Bin Full',
+        'Dry waste bin has reached 90% — please replace immediately.', 'alert');
+
+    if (cur.leak        && !_prevAlerts.leak)
+      sendAlert('\uD83D\uDCA7', 'Liquid Leak Detected',
+        'Float switch triggered — check the base of the bin.', 'alert');
+
+    if (cur.fire        && !_prevAlerts.fire)
+      sendAlert('\uD83D\uDD25', 'Fire Risk!',
+        'Temperature exceeded 50\u00b0C — evacuate area immediately.', 'alert');
+
+    if (cur.tempWarn    && !_prevAlerts.tempWarn)
+      sendAlert('\uD83C\uDF21', 'Temperature Warning',
+        'Temperature is between 45\u201350\u00b0C — monitor closely.', 'warn');
+
+    if (cur.highHumid   && !_prevAlerts.highHumid)
+      sendAlert('\uD83D\uDCA6', 'High Humidity',
+        'Humidity is above 80% — condensation risk.', 'warn');
+
+    _prevAlerts = cur;
+  }
+
+  /* ── Helpers ── */
+  function binColor(p) { return p >= 90 ? 'var(--red)' : p >= 70 ? 'var(--yellow)' : 'var(--green)'; }
+  function binPillClass(p) { return p >= 90 ? 'pill pill-full' : p >= 70 ? 'pill pill-warn' : 'pill pill-ok'; }
+  function binPillText(p) { return p >= 90 ? 'Bin Full \u2014 Replace Now' : p >= 70 ? 'Almost Full' : 'Bin OK'; }
+
+  /* ── Render live state ── */
+  function render(s) {
+    if (!s) return;
+
+    /* Counter — save live data; only update UI when Today tab is active */
+    _todayData = { total: s.total_sorted || 0, wet: s.total_wet || 0, dry: s.total_dry || 0 };
+    if (_selectedDate === null) {
+      updateCounter(_todayData.total, _todayData.wet, _todayData.dry, 'items sorted today');
+    }
+
+    /* Bins */
+    ['wet', 'dry'].forEach(function (b) {
+      var pct  = b === 'wet' ? (s.wet_pct  || 0) : (s.dry_pct  || 0);
+      var dist = b === 'wet' ? (s.wet_dist || 0) : (s.dry_dist || 0);
+      document.getElementById('tf-' + b).style.height     = pct + '%';
+      document.getElementById('tf-' + b).style.background = binColor(pct);
+      document.getElementById('tp-' + b).textContent      = pct.toFixed(2) + '%';
+      document.getElementById('bv-' + b + '-pct').textContent  = pct.toFixed(2) + '%';
+      document.getElementById('bv-' + b + '-dist').textContent = dist + ' cm';
+      var pill = document.getElementById('bp-' + b);
+      pill.className   = binPillClass(pct);
+      pill.textContent = binPillText(pct);
+    });
+
+    /* Temperature */
+    var tc = s.temp_c || 0;
+    document.getElementById('ev-temp').textContent = tc.toFixed(1);
+    var tb = document.getElementById('eb-temp'), tg = document.getElementById('eg-temp');
+    if (tc > 50)      { tb.className = 'env-box env-alert'; tg.className = 'badge b-hi';  tg.textContent = 'Fire risk!'; }
+    else if (tc > 45) { tb.className = 'env-box env-warn';  tg.className = 'badge b-med'; tg.textContent = 'High temp'; }
+    else              { tb.className = 'env-box';            tg.className = 'badge b-low'; tg.textContent = 'Normal'; }
+
+    /* Humidity */
+    var hc = s.humid_pct || 0;
+    document.getElementById('ev-humid').textContent = hc.toFixed(1);
+    var hb = document.getElementById('eb-humid'), hg = document.getElementById('eg-humid');
+    if (hc > 80)      { hb.className = 'env-box env-alert'; hg.className = 'badge b-hi';  hg.textContent = 'Leak risk!'; }
+    else if (hc > 65) { hb.className = 'env-box env-warn';  hg.className = 'badge b-med'; hg.textContent = 'Elevated'; }
+    else              { hb.className = 'env-box';            hg.className = 'badge b-low'; hg.textContent = 'Normal'; }
+
+    /* Fire risk */
+    var fb = document.getElementById('eb-fire'), fg = document.getElementById('eg-fire'), fv = document.getElementById('ev-fire');
+    if (tc > 50)      { fb.className = 'env-box env-alert'; fv.textContent = 'High';   fg.className = 'badge b-hi';  fg.textContent = 'Evacuate!'; }
+    else if (tc > 45) { fb.className = 'env-box env-warn';  fv.textContent = 'Medium'; fg.className = 'badge b-med'; fg.textContent = 'Monitor closely'; }
+    else              { fb.className = 'env-box';            fv.textContent = 'Low';    fg.className = 'badge b-low'; fg.textContent = 'No action needed'; }
+
+    /* Leak */
+    var lb = document.getElementById('eb-leak'), lv = document.getElementById('ev-leak'), lg2 = document.getElementById('eg-leak');
+    if (s.leak) { lb.className = 'env-box env-alert'; lv.textContent = 'Leak Detected'; lg2.className = 'badge b-hi';  lg2.textContent = 'Float switch: HIGH'; }
+    else        { lb.className = 'env-box';            lv.textContent = 'No Leak';       lg2.className = 'badge b-low'; lg2.textContent = 'Float switch: LOW'; }
+
+    /* System orb */
+    var orb  = document.getElementById('s-orb');
+    var ss   = document.getElementById('s-state'), sm = document.getElementById('s-msg');
+    var lGr  = document.getElementById('l-green'), lY = document.getElementById('l-yellow'), lR = document.getElementById('l-red');
+    var isFull = (s.wet_pct >= 90 || s.dry_pct >= 90), isFire = tc > 50, isLeak = s.leak;
+    var isTW   = tc > 45 && tc <= 50, isHH = hc > 80;
+    if (isFire || isLeak) {
+      orb.className = 'orb orb-r';
+      ss.textContent = isFire ? 'Fire Risk' : 'Liquid Leak';
+      sm.textContent = isFire ? 'Temperature exceeded 50\u00b0C' : 'Liquid at bin base \u2014 maintenance needed';
+      lGr.className = 'led'; lY.className = 'led'; lR.className = 'led led-on-r';
+    } else if (isFull || isTW || isHH) {
+      orb.className = 'orb orb-y';
+      ss.textContent = isFull ? 'Bin Full' : isTW ? 'Temp Warning' : 'High Humidity';
+      sm.textContent = isFull ? 'A bin has reached capacity' : isTW ? 'Temperature 45\u201350\u00b0C' : 'Humidity above 80%';
+      lGr.className = 'led'; lY.className = 'led led-on-y'; lR.className = 'led';
+    } else {
+      orb.className = 'orb orb-g';
+      ss.textContent = 'Normal'; sm.textContent = 'System operating normally';
+      lGr.className = 'led led-on-g'; lY.className = 'led'; lR.className = 'led';
+    }
+
+    /* Activity log — Firebase stores JS arrays as objects with numeric keys */
+    if (s.log) {
+      var logArr = Array.isArray(s.log) ? s.log : Object.values(s.log);
+      var logEl  = document.getElementById('log');
+      logEl.innerHTML = '';
+      logArr.forEach(function (e) {
+        var cls = e.level === 'alert' ? 'la' : e.level === 'warn' ? 'lw' : 'li';
+        var el  = document.createElement('div');
+        el.className = 'log-entry ' + cls;
+        el.innerHTML = '<span class="log-time">' + (e.time || '') + '</span>'
+          + '<div class="log-dot"></div>'
+          + '<span class="log-msg">' + (e.msg || '') + '</span>';
+        logEl.appendChild(el);
+      });
+      logEl.scrollTop = 0;
+    }
+
+    /* Check alert conditions — fires browser + toast notification on change */
+    checkAlerts(s);
+  }
+
+  /* ── History chart ── */
+  var _chart = null;
+
+  function drawChart(labels, temps, humids) {
+    var canvas   = document.getElementById('histChart');
+    var emptyEl  = document.getElementById('chart-empty');
+    if (!canvas) return;
+    emptyEl.style.display = 'none';
+    canvas.style.display  = 'block';
+    var ctx = canvas.getContext('2d');
+    if (_chart) { _chart.destroy(); }
+    _chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Temp (\u00b0C)', data: temps,
+            borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,0.08)',
+            borderWidth: 2, pointRadius: 3, tension: 0.3, yAxisID: 'yTemp'
+          },
+          {
+            label: 'Humidity (%)', data: humids,
+            borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.08)',
+            borderWidth: 2, pointRadius: 3, tension: 0.3, yAxisID: 'yPct'
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: { backgroundColor: '#1f2937', titleColor: '#f9fafb', bodyColor: '#d1d5db', padding: 10, cornerRadius: 8 }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(0,0,0,0.05)' },
+            ticks: { font: { size: 10, family: 'monospace' }, color: '#6b7280', maxRotation: 45 }
+          },
+          yTemp: {
+            type: 'linear', position: 'left', min: 0, max: 60,
+            grid: { color: 'rgba(0,0,0,0.05)' },
+            ticks: { font: { size: 10, family: 'monospace' }, color: '#dc2626', callback: function (v) { return v + '\u00b0'; } }
+          },
+          yPct: {
+            type: 'linear', position: 'right', min: 0, max: 100,
+            grid: { drawOnChartArea: false },
+            ticks: { font: { size: 10, family: 'monospace' }, color: '#2563eb', callback: function (v) { return v + '%'; } }
+          }
+        }
+      }
+    });
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     WASTE GENERATION TREND
+     — pulls last 200 history entries
+     — groups sort events by hour (0-23, local browser time)
+     — highlights the peak hour in orange
+     ══════════════════════════════════════════════════════════════ */
+  var _trendChart = null;
+
+  /* Count sort events per hour across all entries */
+  function buildHourlyBuckets(entries) {
+    var buckets = new Array(24).fill(0);
+    entries.forEach(function (e) {
+      if (e.event === 'sort' && e.time) {
+        var h = new Date(e.time).getHours(); // local browser hour
+        if (h >= 0 && h < 24) buckets[h]++;
+      }
+    });
+    return buckets;
+  }
+
+  function drawTrendChart(buckets) {
+    var canvas  = document.getElementById('trendChart');
+    var emptyEl = document.getElementById('trend-empty');
+    var peakEl  = document.getElementById('peak-val');
+    if (!canvas) return;
+
+    var total = buckets.reduce(function (a, b) { return a + b; }, 0);
+
+    /* No sort events yet */
+    if (total === 0) {
+      if (_trendChart) { _trendChart.destroy(); _trendChart = null; }
+      canvas.style.display  = 'none';
+      emptyEl.style.display = 'flex';
+      emptyEl.textContent   = 'No sort events yet \u2014 sort some waste to build the trend.';
+      peakEl.textContent    = 'No data yet';
+      return;
+    }
+
+    /* Find the peak hour */
+    var peakHour = 0, peakCount = 0;
+    buckets.forEach(function (v, i) {
+      if (v > peakCount) { peakCount = v; peakHour = i; }
+    });
+
+    /* Update Peak Usage stat */
+    var nextHour = (peakHour + 1) % 24;
+    peakEl.textContent =
+      'Peak Hour: ' + pad2(peakHour) + ':00 \u2013 ' + pad2(nextHour) + ':00'
+      + ' \u00b7 ' + peakCount + ' item' + (peakCount === 1 ? '' : 's') + ' sorted';
+
+    /* Per-point appearance — peak = orange larger dot, others = green */
+    var ptBg  = buckets.map(function (_, i) { return i === peakHour ? '#f59e0b' : '#16a34a'; });
+    var ptBdr = buckets.map(function (_, i) { return i === peakHour ? '#b45309' : '#16a34a'; });
+    var ptR   = buckets.map(function (_, i) { return i === peakHour ? 7 : (buckets[i] > 0 ? 3 : 2); });
+
+    /* Fixed 24-hour X-axis labels */
+    var labels24 = Array.from({ length: 24 }, function (_, i) { return pad2(i) + ':00'; });
+
+    emptyEl.style.display = 'none';
+    canvas.style.display  = 'block';
+    var ctx = canvas.getContext('2d');
+    if (_trendChart) { _trendChart.destroy(); }
+
+    _trendChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels24,
+        datasets: [{
+          label: 'Sort events',
+          data: buckets,
+          borderColor: '#16a34a',
+          backgroundColor: 'rgba(22,163,74,0.07)',
+          borderWidth: 2,
+          tension: 0.3,
+          fill: true,
+          pointBackgroundColor: ptBg,
+          pointBorderColor: ptBdr,
+          pointBorderWidth: 2,
+          pointRadius: ptR,
+          pointHoverRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1f2937',
+            titleColor: '#f9fafb',
+            bodyColor: '#d1d5db',
+            padding: 10,
+            cornerRadius: 8,
+            callbacks: {
+              title: function (items) { return items[0].label; },
+              label: function (item) {
+                var v = item.raw;
+                return '  ' + v + ' sort event' + (v === 1 ? '' : 's');
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(0,0,0,0.04)' },
+            ticks: {
+              font: { size: 9, family: 'monospace' },
+              color: '#6b7280',
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 12    /* show ~every 2 hours to avoid crowding */
+            }
+          },
+          y: {
+            min: 0,
+            beginAtZero: true,
+            grid: { color: 'rgba(0,0,0,0.05)' },
+            ticks: {
+              font: { size: 10, family: 'monospace' },
+              color: '#6b7280',
+              precision: 0,
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
+  }
+
+  /* ── Firebase refs (shared for attach / detach) ── */
+  var _connRef    = db.ref('.info/connected');
+  var _refCtrlSt  = db.ref('smartbin/control_state');
+  var _refLive    = db.ref('smartbin/live/bin01');
+  var _qHist20    = db.ref('smartbin/history/bin01').orderByKey().limitToLast(20);
+  var _qTrend200  = db.ref('smartbin/history/bin01').orderByKey().limitToLast(200);
+  var _qDaily7    = db.ref('smartbin/daily_history/bin01').orderByKey().limitToLast(7);
+
+  function _onConn(snap) {
+    var pill = document.getElementById('conn-pill');
+    var dot  = document.getElementById('conn-dot');
+    var txt  = document.getElementById('conn-text');
+    if (!pill || !dot || !txt) return;
+    if (snap.val() === true) {
+      pill.style.background = 'var(--green-d)';
+      pill.style.borderColor = 'var(--green)';
+      pill.style.color = 'var(--green)';
+      dot.style.background = 'var(--green)';
+      txt.textContent = 'Firebase';
+    } else {
+      pill.style.background = 'var(--red-d)';
+      pill.style.borderColor = 'var(--red)';
+      pill.style.color = 'var(--red)';
+      dot.style.background = 'var(--red)';
+      txt.textContent = 'Reconnecting...';
+    }
+  }
+
+  function _onCtrlState(snapshot) {
+    var state = snapshot.val();
+    if (!state) return;
+
+    if (state.servo) {
+      _dryDeg = state.servo.dry_deg || 30;
+      _wetDeg = state.servo.wet_deg || 150;
+      ['dry', 'wet'].forEach(function (side) {
+        var target = side === 'dry' ? _dryDeg : _wetDeg;
+        var g = document.getElementById('sg-' + side);
+        if (!g) return;
+        g.querySelectorAll('.seg-btn').forEach(function (b) {
+          b.classList.remove('seg-active-dry', 'seg-active-wet');
+          if (parseInt(b.dataset.val) === target) b.classList.add('seg-active-' + side);
+        });
+      });
+      document.getElementById('seg-cur').innerHTML =
+        'Dry ' + _dryDeg + '&deg; &nbsp;&middot;&nbsp; Wet ' + _wetDeg + '&deg;';
+    }
+
+    var compMap = { dht11: 'dht', led: 'led', moisture: 'moist' };
+    Object.keys(compMap).forEach(function (fbKey) {
+      if (state[fbKey] === undefined || state[fbKey] === null) return;
+      var id  = compMap[fbKey];
+      var on  = state[fbKey].enabled !== false;
+      var chk = document.getElementById('tog-' + id);
+      var stEl = document.getElementById(id === 'moist' ? 'st-moist' : 'st-' + id);
+      if (chk)  chk.checked = on;
+      if (stEl) {
+        stEl.innerHTML = on ? '\u25cf Enabled' : '\u25cf Disabled';
+        stEl.className = 'comp-stat ' + (on ? 'c-on' : 'c-off');
+      }
+    });
+  }
+
+  function _onLive(snapshot) {
+    var s = snapshot.val();
+    if (s) render(s);
+  }
+
+  function _onHist20(snapshot) {
+    var raw = snapshot.val();
+    if (!raw || typeof raw !== 'object') {
+      document.getElementById('chart-empty').textContent = 'No history yet \u2014 sort some waste to build history.';
+      return;
+    }
+    var entries = Object.values(raw)
+      .filter(function (e) { return e && e.time; })
+      .sort(function (a, b) { return new Date(a.time) - new Date(b.time); });
+
+    if (!entries.length) {
+      document.getElementById('chart-empty').textContent = 'No history yet \u2014 sort some waste to build history.';
+      return;
+    }
+    var labels = entries.map(function (e) {
+      return new Date(e.time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+    });
+    var temps  = entries.map(function (e) { return e.temp_c    || 0; });
+    var humids = entries.map(function (e) { return e.humid_pct || 0; });
+    drawChart(labels, temps, humids);
+  }
+
+  function _onTrend200(snapshot) {
+    var raw = snapshot.val();
+    if (!raw || typeof raw !== 'object') {
+      document.getElementById('trend-empty').textContent = 'No data yet \u2014 sort some waste to build the trend.';
+      document.getElementById('peak-val').textContent    = 'No data yet';
+      return;
+    }
+    var entries = Object.values(raw).filter(function (e) { return e && e.time; });
+    drawTrendChart(buildHourlyBuckets(entries));
+  }
+
+  function _onDaily7(snapshot) {
+    var raw = snapshot.val();
+    _dailyHistory = {};
+    if (raw && typeof raw === 'object') {
+      Object.keys(raw).forEach(function (dateKey) {
+        var d = raw[dateKey];
+        _dailyHistory[dateKey] = {
+          total: d.total || 0,
+          wet:   d.wet   || 0,
+          dry:   d.dry   || 0
+        };
+      });
+    }
+    if (_selectedDate !== null) {
+      var day = _dailyHistory[_selectedDate] || { total: 0, wet: 0, dry: 0 };
+      updateCounter(day.total, day.wet, day.dry,
+        'items sorted on ' + formatDateLabel(_selectedDate));
+    }
+  }
+
+  function attachDatabaseListeners() {
+    if (_dbListenersAttached) return;
+    _dbListenersAttached = true;
+    _connRef.on('value', _onConn);
+    _refCtrlSt.on('value', _onCtrlState, fbErr);
+    _refLive.on('value', _onLive, fbErr);
+    _qHist20.on('value', _onHist20, fbErr);
+    _qTrend200.on('value', _onTrend200, fbErr);
+    _qDaily7.on('value', _onDaily7, fbErr);
+  }
+
+  function detachDatabaseListeners() {
+    if (!_dbListenersAttached) return;
+    _dbListenersAttached = false;
+    _connRef.off('value', _onConn);
+    _refCtrlSt.off('value', _onCtrlState);
+    _refLive.off('value', _onLive);
+    _qHist20.off('value', _onHist20);
+    _qTrend200.off('value', _onTrend200);
+    _qDaily7.off('value', _onDaily7);
+  }
+
+  /* Build 7-day tab strip on page load */
+  buildDayTabs();
+
+})();
+</script>
+</body>
+</html>
